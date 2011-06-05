@@ -468,7 +468,7 @@ class FullCycleCreator:
             fullClassName = namespace + "::" + className
         formdict = { "tab":self._tab, "class":className, "namespace":namespace, "fullClassName":fullClassName }
         
-        # Determine the relative path of the header
+        # Determine the relative path of the header using os.path.relpath
         import os
         include = os.path.relpath( header, os.path.dirname( sourceName ) )
         
