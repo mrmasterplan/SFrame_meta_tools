@@ -1,0 +1,8 @@
+
+TODO here:
+- centralize the variable list parser.
+- centralize the root importer.
+- centralize the TTree name extractor.
+- centralize the var list to Variable object reader
+- centralize the Variable Object.
+
