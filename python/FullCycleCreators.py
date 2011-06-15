@@ -907,6 +907,12 @@ public:
     /// Function called after finishing to process an input data
     virtual void EndInputData  ( const SInputData& ) throw( SError );
 
+    /// Function called once on the master at the beginning of a new input data
+    virtual void BeginMasterInputData( const SInputData& ) throw( SError );
+    /// Function called once on the master after finishing to process an input data
+    virtual void EndMasterInputData  ( const SInputData& ) throw( SError );
+
+
     /// Function called after opening each new input file
     virtual void BeginInputFile( const SInputData& ) throw( SError );
 
@@ -973,6 +979,18 @@ void %(class)-s::BeginCycle() throw( SError ) {
 
 void %(class)-s::EndCycle() throw( SError ) {
 
+    return;
+
+}
+
+void %(class)-s::BeginMasterInputData( const SInputData& ) throw( SError ) {
+
+    return;
+}
+
+void %(class)-s::EndMasterInputData( const SInputData& ) throw( SError ) {
+
+	  // You can do fitting here.
     return;
 
 }
