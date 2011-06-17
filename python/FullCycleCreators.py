@@ -23,6 +23,88 @@
 #  >>> import FullCycleCreators
 # </code>
 
+
+import re, sys
+import BranchObject
+import TTreeReader
+
+# pure functions, mostly concerned with text manipulations:
+## @short Function to determine whether the type named by typename is an stl_container
+#
+# C++ Standard Library containers should be cleared at the beginning of the ExecuteEvent
+# method when they are used for output. This little function determines if a given typename
+# is an stl container using regular expressions.
+# 
+# @param typename variable type name to evaluate.
+def Is_stl_like( typename ):
+
+    import re
+    # Check if the typename contains structures like "vector <int>" or similar for list, map or set 
+    stl_like = bool( re.search( "(vector|list|set|map)\s*<.*>", typename ) )
+    # May want to include other stl_containers here, but I don't expect others to be used.
+    # ... and really there is only so far you can go with automatic gode generation.
+    if stl_like:
+        return "*"
+    else:
+        return ""
+
+## @short Function to split the cycle name into a namespace and a base-name
+#
+# The split is done at the last double colon "::". At the moment this only
+# produces valid C++ code for up to one layer of namespacing.
+#
+# @param cycleName Full cycle name to be split
+def SplitCycleName( cycleName ):
+    """
+    splits the cycleName into a class name and a namespace name
+    returns a tuple of (namespace, className )
+    """
+    namespace = ""
+    className = cycleName
+    if re.search( "::", cycleName ):
+        m = re.match( "(.*)::(.*)", cycleName )
+        namespace = m.group( 1 )
+        className = m.group( 2 )
+
+    return ( namespace, className )
+
+## @short Function to create a backup of a file if it already exits.
+# 
+# This function checks for the exitence of filename. If it exists, 
+# a warning is prined and the filename is moved to a location that has
+# .backup appended to the original path.
+# 
+# @param fileName file path to check
+def Backup( filename ):
+    """
+    Check if the file exists. If it does, beck it up to file+".backup"
+    """
+    import os.path
+    if os.path.exists( filename ):
+        print >>sys.stderr, "WARNING:: File \"%s\" already exists" % filename
+        print >>sys.stderr, "WARNING:: Moving \"%s\" to \"%s.backup\"" % ( filename, filename )
+        import shutil
+        shutil.move( filename, filename + ".backup" )
+
+## @short Function to clean up a type name for comparison
+# 
+# This function takes a c++ type-name and removes unnecessary whitespaces.
+# 
+# @param typename type-name to clean.
+def CleanType( typename ):
+    """
+    Remove unnecessary whitespaces from the typename
+    """
+    import re
+    typename=re.sub(" (?=<)","",typename) # remove spaces before <
+    typename=re.sub("(?<=<) ","",typename) # remove spaces after <
+    typename=re.sub(" (?<=>)","",typename) # remove spaces before >
+    typename=re.sub("(?<=>) ","",typename) # remove spaces after >
+    typename=re.sub("(?<=>)(?=>)"," ",typename) #insert space between >>
+    typename = typename.strip()
+    return typename
+
+
 ## @short Class creating analysis cycle templates
 #
 # This class can be used to create a template cycle inheriting from
@@ -30,298 +112,7 @@
 # from inside an "SFrame package", it will find the right locations for the
 # created files and extend an already existing LinkDef.h file with the
 # line for the new cycle.
-
-import re
-
 class FullCycleCreator:
-    
-    ## @short Class the contain the information related to one variable.tree-branch
-    #
-    # This is a simple container class that holds, aomngst other things the 
-    # type-name and name of a variable. A list of instances of this class is created
-    # either by parsing a list of variable declarations or from a TTree inside a 
-    # root-file in the course of the cycle-creation.
-    class Variable( object ):
-        """
-        One of the variables that will be used in the cycle.
-        A variable has a name and a typename.
-        A variable can be and stl-container where the input declaration must be a pointer etc.
-        A variable can be commented out, in which case it will be included in the cycle, 
-        but as being commented out.
-        
-        A list of variables is assembled either by the TreeReader directly from a root-file, 
-        or by the VariableSelectionReader from a C-like file with variable declarations.
-        """
-        ## @short Constructor of the Variable class
-        #
-        # This function takes the arguments and saves them as member variables.
-        # on top of that, it sanitizes the name to create a member called cname
-        # that is suitable as a c++ variable name.
-        #
-        # @param name The name of the variable.
-        # @param typename The type of the variable, such as int or vector<float> etc.
-        # @param name The name of the variable.
-        # @param commeneted Should be eiter "" or "//" to indicate wheter to use this variable or not
-        # @param pointer Should be eiter "" or "*" to indicate whether this variable needs to be accessed as an object.
-        def __init__( self, name, typename, commented, pointer ):
-            super( FullCycleCreator.Variable, self ).__init__()
-            self.name = name
-            self.typename = typename
-            self.pointer = pointer
-            self.commented = commented
-            # Sanitize the name. Root names can be anything.
-            # We must be careful to have a valid C++ variable name in front of us
-            import re
-            self.cname = re.sub( """[^_0-9a-zA-Z]""", "_", self.name )  # These are the only valid characters in C++ variable names
-            if not re.match( "[a-zA-Z_]", self.cname ):  # furthermore, the name must start with a letter, not a number
-                self.cname = "_" + self.cname
-            
-            if self.cname != self.name:
-                print >>sys.stderr, "WARNING: Illegal characters in branch name \"%s\", using \"%s\" instead. " % (self.name, self.cname)
-        
-        def __repr__(self):
-            return "%s%s %s%s" % (self.commented, self.typename, self.pointer, self.name )
-        def __str__(self):
-            return self.__repr__()
-        
-        # End of Class Variable
-    
-    ## @short Function to read the variable declarations from a file
-    #
-    # The function uses regular expressions to read a list of c++ 
-    # variable declarations from a file and assembles a list of 
-    # "Variable" instances.
-    # 
-    # The file should contain at most one variable declaration per line.
-    # Commented out variable declarations are used and flagged as commented.
-    # Other comments are ignored as long as they do not resemble declarations.
-    # Objects that need to be accessed as pointers, such as stl vectors, should
-    # be declared as pointers, as done by the ROOT MakeClass, for example.
-    #
-    # The returned object has the same structure as that returned by ROOT_Access.ReadVars
-    #
-    # @param fileName Path of the file that contains the list of variables.
-    def ReadVariableSelection( self, filename ):
-        """
-        Reads a list of variable declarations from file into a structured format.
-        From there they can be used to create the declarations and 
-        connect-statements necessary to use the variables in a cycle.
-        """
-        varlist = []
-        try:
-            text = open( filename ).read()
-        except:
-            print "Unable to open variable selection file", "\"%s\"" % filename
-            return varlist
-        
-        # Use some regexp magic to change all /*...*/ style comments to // style comments
-        text = re.sub( """\*/[^\n]""", "*/\n", text ) # append newline to every */ that isn't already followed by one
-        while re.search( """/\*""", text ):  # While ther still are /* comments
-            text = re.sub( """/\*(?P<line>.*?)(?P<end>\n|\*/)""", """// \g<line>/*\g<end>""", text ) # move the /* to the next newline or */
-            text = re.sub( """/\*\*/""", "", text )  # remove zero content comments
-            text = re.sub( """/\*\n""", "\n/*", text ) # move the /* past the newline
-        
-        text = re.sub("""(?<!\n)//""","\n//", text ) # Make sure // always starts a new line
-        text = re.sub("""\n(\s)*""","\n", text ) # clean up any sequence of successive whitespaces starting with a newline
-        text = re.sub("""^(\s)*""","", text ) # clean up any sequence of successive whitespaces at the start of the file
-        text = re.sub("""(\s)*\n""","\n", text ) # clean up any sequence of successive whitespaces at line endings
-        
-        # the text should now be quite tidy and ready for parsing.
-        
-        # Find every variable definition.
-        # Definitions may start with a //.
-        # After that I expect there to be a typename of the form UInt_t or int or std::vector<double> etc.
-        # then a name, 
-        # and finally a semicolon
-        query="""(?P<comment>(?://)?)[ \t]*""" # First find out if the line is commented
-        # next is the typename which starts with a word chracter [a-zA-Z_]
-        query+="""(?P<type>[a-zA-Z_][a-zA-Z0-9_:]*(?:[ \t]*<.*>)?)""" 
-        # but can from there on also contain numbers [a-zA-Z_0-9:]*
-        # finally it may contain a template structure (?:[ \t]*<.*>)?
-        # next comes the issue of pointers. 
-        query+="""(?:(?:[ \t]*(?P<point>\*)[ \t]*)|(?:(?<!\*)[ \t]+(?!\*)))"""
-        # if there is a star, it can have whitespaces before or after.
-        # if there is no star, there must be some whitespace which is neiter preceded nor succede by a star.
-        # and now for the name
-        query+="""(?P<name>[a-zA-Z_][a-zA-Z_0-9]*)[ \t]*;[ \t;]*"""
-        for match in re.finditer( query, text ):
-            varargs = {}
-            varargs[ "commented" ] = match.group( "comment" ) # whether the variable was commented out. Will be '//' if it was, or "" if it wasn't
-            varargs[ "typename" ] = match.group( "type" )
-            varargs[ "name" ] = match.group( "name" )
-            varargs[ "pointer" ] = match.group( "point" )
-            if not varargs[ "pointer" ]:
-                varargs[ "pointer" ] = "" # just in case there was no poiner to match.
-            varlist.append( self.Variable( **varargs ) )
-        
-        return varlist
-    
-    ## @short Class to encapsulate all pyROOT access
-    #
-    # This class and its methods represent the only cases where I need
-    # access to pyROOT. I attempt to import pyROOT only once. It it fails,
-    # I attempt to give meaningful default values instead.
-    # 
-    class ROOT_Access:
-        """
-        A class that contains all the pyROOT related tasks.
-        It will try to import pyROOT only once, and tell you if
-        it failed. After that it will simply shut up and return
-        empty objects if ROOT was't imported properly.
-        """
-        def __init__( self ):
-            self.intitalized = 0
-        
-        ## @short Function to import pyROOT
-        #
-        def Initalize( self ):
-            if self.intitalized:
-                return bool( self.ROOT )
-            
-            try:
-                import ROOT
-                self.ROOT = ROOT
-            except ImportError, e:
-                print "ERROR: pyROOT could not be loaded. Unable to access root-file"
-                print "ERROR: You will need to supply the treename and variable list."
-                print "ERROR: use -h or --help to get help."
-                self.ROOT = 0
-            
-            return bool( self.ROOT )
-        
-        ## @short Function to return a python iterator over any TCollection
-        #
-        # @param tcoll TCollection to iterate over
-        def TCollIter( self, tcoll ):
-            """Gives an iterator over anything that the ROOT.TIter can iterate over."""
-            if not self.Initalize():
-                return
-            it = self.ROOT.TIter( tcoll )
-            it.Reset()
-            item = it.Next()
-            while item:
-                yield item
-                item = it.Next()
-            return
-        
-        ## @short Function to extract a relavnt tree name froma rootfile
-        #
-        # This function looks inside a rootfile and returns the name of 
-        # the TTree with the largest number of branches. If any problems
-        # are encountered "TreeName" is returned.
-        #
-        # @param rootfile Path of the rootfile to read
-        def GetTreeName( self, rootfile ):
-            """
-            Get the name of the treename in the file named rootfile.
-            Or just return 'TreeName' if any errors show up.
-            If several trees are present, get the one with the largest number
-            of branches.
-            """
-            treename = "TreeName"
-            if not self.Initalize():
-                return treename
-            
-            if not rootfile:
-                print "No rootfile given. Using default tree name:", treename
-                return treename
-            
-            f = self.ROOT.TFile.Open( rootfile )
-            if not f:
-                print rootfile, "could not be opened. Using default tree name:", treename
-                return treename
-            # Get a list of all TKeys to TTrees
-            trees = [ key for key in self.TCollIter( f.GetListOfKeys() ) if key.GetClassName() == "TTree" ]
-            if len( trees ) == 1:
-                # Just 1? Use it
-                treename = trees[ 0 ].GetName()
-            elif len( trees ) > 1:
-                print "Avaliable tree names:", ", ".join( [ key.GetName() for key in trees ] )
-                # Find the tree with the largest number of branches.
-                nbranch = -1;
-                for key in trees:
-                    tree = key.ReadObj()
-                    if tree.GetNbranches() > nbranch:
-                        nbranch = tree.GetNbranches()
-                        treename = tree.GetName()
-            print "Using treename:", treename
-            f.Close()
-            
-            return treename
-        
-        ## @short Function to construct a list of Variable instances from a TTree
-        #
-        # This function reads a TTree from a rootfile and constructs a list of
-        # Variable class intances that can be used in the construction of the cycle.
-        # The returned object has the same structure as that returned by ReadVariableSelection
-        #
-        # @param rootfile Path of the rootfile to read
-        # @param treename Name of the TTree to use
-        def ReadVars( self, rootfile, treename ):
-            """
-            Reads a list of variables from a root-file into a structured 
-            format. From there they can be used to create the declarations and connect
-            statements necessary to use the variables in a cycle.
-            """
-            varlist = []
-            if not self.Initalize():
-                return varlist
-            ROOT = self.ROOT
-            
-            if not rootfile or not treename:
-                print "Incomplete arguments. Cannot get tree named \"%s\" from rootfile \"%s\"" % ( treename, rootfile )
-                return varlist
-            
-            f = ROOT.TFile.Open( rootfile )
-            if not f:
-                print "Could not open root file \"%s\"" % rootfile
-                return varlist
-            
-            tree = f.Get( treename )
-            if not tree:
-                print "Could not get tree \"%s\"" % treename
-                f.Close()
-                return varlist
-            
-            for branch in self.TCollIter( tree.GetListOfBranches() ):
-                for leaf in self.TCollIter( branch.GetListOfLeaves() ):
-                    varargs = {}
-                    varargs[ "commented" ] = ""
-                    varargs[ "typename" ] = leaf.GetTypeName()
-                    varargs[ "name" ] = leaf.GetName()
-                    #varargs[ "pointer" ] = FullCycleCreator.Is_stl_like( leaf.GetTypeName() )
-                    if type( leaf ) in (ROOT.TLeafElement, ROOT.TLeafObject):
-                        varargs[ "pointer" ] = "*"
-                    else:
-                        varargs[ "pointer" ] = ""
-                    varlist.append( FullCycleCreator.Variable( **varargs ) )
-            f.Close()
-            return varlist
-        
-        #End of Class ROOT_Access
-    
-    
-    ## @short Function to determine whether the type named by typename is an stl_container
-    #
-    # C++ Standard Library containers should be cleared at the beginning of the ExecuteEvent
-    # method when they are used for output. This little function determines if a given typename
-    # is an stl container using regular expressions.
-    # 
-    # @param typename variable type name to evaluate.
-    @staticmethod
-    def Is_stl_like( typename ):
-
-        #stl_like = "vector" in typename
-        #stl_like = bool( re.search( """<.+>""", typename ) ) or bool( "vector" in typename )
-        import re
-        # Check if the typename contains structures like "vector <int>" or similar for list, map or set 
-        stl_like = bool( re.search( "(vector|list|set|map)\s*<.*>", typename ) )
-        # May want to include other stl_containers here, but I don't expect others to be used.
-        # ... and really there is only so far you can go with automatic gode generation.
-        if stl_like:
-            return "*"
-        else:
-            return ""
     
     ## @short Function to indent a text body
     # 
@@ -330,58 +121,17 @@ class FullCycleCreator:
     # 
     # @param text The text body to indent
     def Indent( self, text ):
-        return re.sub( """(?<=:^|\n)(?=.)""", """%s\g<0>""" % self._tab, text )
+        return re.sub( """.+""", """%s\g<0>""" % self._tab, text )
     
     # See end of class definition for string literals
 
     ## @short Constructor
     # 
-    # Instantiates a Root_Access object for later use.
+    # does nothing
     # 
     def __init__( self ):
-        self._headerFile = ""
-        self._sourceFile = ""
-        self.pyROOT = self.ROOT_Access()
+        pass
     
-    ## @short Function to split the cycle name into a namespace and a base-name
-    #
-    # The split is done at the last double colon "::". At the moment this only
-    # produces valid C++ code for up to one layer of namespacing.
-    #
-    # @param cycleName Full cycle name to be split
-    def SplitCycleName( self, cycleName ):
-        """
-        splits the cycleName into a class name and a namespace name
-        returns a tuple of (namespace, className )
-        """
-        namespace = ""
-        className = cycleName
-        if re.search( "::", cycleName ):
-            m = re.match( "(.*)::(.*)", cycleName )
-            namespace = m.group( 1 )
-            className = m.group( 2 )
-        
-        return ( namespace, className )
-    
-    ## @short Function to create a backup of a file if it already exits.
-    # 
-    # This function checks for the exitence of filename. If it exists, 
-    # a warning is prined and the filename is moved to a location that has
-    # .backup appended to the original path.
-    # 
-    # @param fileName file path to check
-    def Backup( self, filename ):
-        """
-        Check if the file exists. If it does, beck it up to file+".backup"
-        """
-        import os.path
-        if os.path.exists( filename ):
-            print "WARNING:: File \"%s\" already exists" % filename
-            print "WARNING:: Moving \"%s\" to \"%s.backup\"" % ( filename, filename )
-            import shutil
-            shutil.move( filename, filename + ".backup" )
-            
-
     ## @short Function creating an analysis cycle header
     #
     # This function can be used to create the header file for a new analysis
@@ -409,8 +159,12 @@ class FullCycleCreator:
 
         for var in varlist:
             subs_dict = dict( formdict )
-            subs_dict.update( var.__dict__ )
-            inputVariableDeclarations += "%(tab)s%(commented)s%(typename)s\t%(pointer)s%(cname)s;\n" % subs_dict
+            subs_dict['declare']=var.Declaration()
+            subs_dict["commented"]=var.commented
+            subs_dict["typename"]=var.typename
+            subs_dict["cname"]=var.cname
+            
+            inputVariableDeclarations += "%(tab)s%(declare)s\n" % subs_dict
 
             if create_output:
                 outputVariableDeclarations += "%(tab)s%(commented)s%(typename)s\tout_%(cname)s;\n" % subs_dict
@@ -420,10 +174,9 @@ class FullCycleCreator:
         # Some printouts:
         print "CreateHeader:: Cycle name     = " + className
         print "CreateHeader:: File name      = " + headerName
-        self._headerFile = headerName
 
         # Create a backup of an already existing header file:
-        self.Backup( headerName )
+        Backup( headerName )
         
         # Construct the contents:
         body = self._Template_header_Body % formdict
@@ -479,15 +232,20 @@ class FullCycleCreator:
         outputVariableFilling = ""
 
         for var in varlist:
-            subs_dict =dict( formdict )
-            subs_dict.update( var.__dict__ )
+            subs_dict = dict( formdict )
+            subs_dict['declare']=var.Declaration()
+            subs_dict["commented"]=var.commented
+            subs_dict["typename"]=var.typename
+            subs_dict["cname"]=var.cname
+            subs_dict["name"]=var.name
+            subs_dict["pointer"]=var.pointer
 
             inputVariableConnections += "%(tab)s%(commented)sConnectVariable( InTreeName.c_str(), \"%(name)s\", %(cname)s );\n" % subs_dict
 
             if create_output:
                 outputVariableConnections += "%(tab)s%(commented)sDeclareVariable( out_%(cname)s, \"%(name)s\" );\n" % subs_dict
                 outputVariableFilling += "%(tab)s%(commented)sout_%(cname)s = %(pointer)s%(cname)s;\n" % subs_dict
-                if var.pointer and self.Is_stl_like( var.typename ):
+                if var.pointer and Is_stl_like( var.typename ):
                     # Not all pointer-accessed types can do this, only stl-vectors
                     outputVariableClearing += "%(tab)s%(commented)sout_%(cname)s.clear();\n" % subs_dict
         
@@ -499,11 +257,9 @@ class FullCycleCreator:
         # Some printouts:
         print "CreateSource:: Cycle name     =", className
         print "CreateSource:: File name      =", sourceName
-        self._sourceFile = sourceName
-
         
         # Create a backup of an already existing source file:
-        self.Backup( sourceName )
+        Backup( sourceName )
         
         #Construct the contents of the source file:
         body = self._Template_source_Body % formdict
@@ -547,10 +303,21 @@ class FullCycleCreator:
         # Find all object-like variable types and make pragma lines for them
         # This is unnecessary for many simple vectors, but since it doesn't
         # do any harm, We might as well include it for all object types
+        ignores=set([CleanType("vector<int>"), 
+                    CleanType("vector<float>"),
+                    CleanType("vector<short>"),
+                    CleanType("vector<unsigned short>"),
+                    CleanType("vector<unsigned int>"),
+                    CleanType("vector<double>")])
+        import re,os.path
+        if os.path.exists( linkdefName ):
+            for match in re.finditer("""#pragma link C\+\+ class (?P<type>.*?)\+;""",open(linkdefName).read()):
+                ignores.add(CleanType(match.group("type")))
         types = set()
         for var in varlist:
             if var.pointer:
-                types.add( var.typename )
+                if var.typename not in ignores:
+                    types.add( var.typename )
         
         for typename in types:
             new_lines += "#pragma link C++ class %s+;\n" % typename
@@ -560,13 +327,13 @@ class FullCycleCreator:
             print "AddLinkDef:: Extending already existing file \"%s\"" % linkdefName
             # Read in the already existing file:
             infile = open( linkdefName, "r" )
-            text =infile.read()
+            text = infile.read()
             infile.close()
 
             # Find the "#endif" line:
             if not re.search( """#endif""", text ):
-                print "AddLinkDef:: ERROR File \"%s\" is not in the right format!" % linkdefName
-                print "AddLinkDef:: ERROR Not adding link definitions!"
+                print >>sys.stderr, "AddLinkDef:: ERROR File \"%s\" is not in the right format!" % linkdefName
+                print >>sys.stderr, "AddLinkDef:: ERROR Not adding link definitions!"
                 return
             
             # Overwrite the file with the new contents:
@@ -606,7 +373,7 @@ class FullCycleCreator:
         # Construct the file name if it has not been specified:
         if configName == "":
             configName = className + "_config.xml"
-        self.Backup( configName )
+        Backup( configName )
         
         cycleName = className
         if namespace:
@@ -620,8 +387,8 @@ class FullCycleCreator:
         import os
         xmlinfile = os.path.join( os.getenv( "SFRAME_DIR" ), "user/config/FirstCycle_config.xml" )
         if not os.path.exists( xmlinfile ):
-            print "ERROR: Expected to find example configuration at", xmlinfile
-            print "ERROR: No configuration file will be written."
+            print  >>sys.stderr, "ERROR: Expected to find example configuration at", xmlinfile
+            print  >>sys.stderr, "ERROR: No configuration file will be written."
             return
         
         #Make changes to adapt this file to our purposes
@@ -631,7 +398,7 @@ class FullCycleCreator:
             
             nodes = dom.getElementsByTagName( "JobConfiguration" )
             # If more than one Job configuration exists, crash
-            if not len( nodes ) == 1: raise AssertionError
+            if not len( nodes ) == 1: raise AssertionError("More than one JobConfiguration section in %s"%xmlinfile)
             JobConfiguration = nodes[ 0 ]
             JobConfiguration.setAttribute( "JobName", className + "Job" )
             JobConfiguration.setAttribute( "OutputLevel", "INFO" )
@@ -648,7 +415,7 @@ class FullCycleCreator:
 
             nodes = dom.getElementsByTagName( "Cycle" )
             #There should be exactly one cycle
-            if not len( nodes ) == 1: raise AssertionError
+            if not len( nodes ) == 1: raise AssertionError("More than one Cycle section in %s"%xmlinfile)
             cycle = nodes[ 0 ]
             cycle.setAttribute( "Name", cycleName )
             cycle.setAttribute( "RunMode", "LOCAL" )
@@ -773,27 +540,27 @@ class FullCycleCreator:
     # @param analysis Optional parameter with the name of analysis package
     def CreateCycle( self, cycleName, linkdef = "", rootfile = "", treename = "", varlist = "", outtree = "", analysis = "" ):
         
-        namespace, className = self.SplitCycleName( cycleName )
+        namespace, className = SplitCycleName( cycleName )
         
         # Make sure analysis is set
         if not analysis:
             import os
             analysis = os.path.basename( os.getcwd() )
-            print "Using analysis name", "\"%s\"" % analysis
+            print "Using analysis name \"%s\"" % analysis
         
         #First we take care of all the variables that the user may want to have read in.
         # If treename wasn't given, it can be read from the rootfile if it exits.
         if not treename:
-            treename = self.pyROOT.GetTreeName( rootfile ) # gives default if rootfile is empty
+            treename = TTreeReader.GetTreeName( rootfile ) # gives default if rootfile is empty
         
         # The three parameters related to the input variables are varlist, treename and rootfile.
         # if neither rootfile or varlist are given, no input variable code will be written.
         cycle_variables = []
         # Prefer to read the input from the varlist
         if varlist:
-            cycle_variables = self.ReadVariableSelection( varlist )
+            cycle_variables = BranchObject.ReadVariableSelection( varlist )
         elif rootfile:
-            cycle_variables = self.pyROOT.ReadVars( rootfile, treename )
+            cycle_variables = TTreeReader.ReadVars( rootfile, treename )
         
         # The list of input variables is now contained in cycle_variables
         # if this list is empty, the effect of this class should be identical to that of the old CycleCreators
@@ -810,18 +577,19 @@ class FullCycleCreator:
             include_dir = ""
             
         if not linkdef:
-            import glob
-            filelist = glob.glob( include_dir+"*LinkDef.h" )
-            if len( filelist ) == 0:
-                print "CreateCycle:: WARNING There is no LinkDef file under", include_dir
-                linkdef = include_dir+"LinkDef.h"
-                print "CreateCycle:: WARNING Creating one with the name", linkdef
-            elif len( filelist ) == 1:
-                linkdef = filelist[ 0 ]
-            else:
-                print "CreateCycle:: ERROR Multiple header files ending in LinkDef.h"
-                print "CreateCycle:: ERROR I don't know which one to use..."
-                return
+            linkdef = include_dir+analysis+"_LinkDef.h"
+            # import glob
+            # filelist = glob.glob( include_dir+"*LinkDef.h" )
+            # if len( filelist ) == 0:
+            #     print "CreateCycle:: WARNING There is no LinkDef file under", include_dir
+            #     linkdef = include_dir+"LinkDef.h"
+            #     print "CreateCycle:: WARNING Creating one with the name", linkdef
+            # elif len( filelist ) == 1:
+            #     linkdef = filelist[ 0 ]
+            # else:
+            #     print "CreateCycle:: ERROR Multiple header files ending in LinkDef.h"
+            #     print "CreateCycle:: ERROR I don't know which one to use..."
+            #     return
         
         # Check if a directory called "src" exists in the current directory.
         # If it does, put the new source in that directory, otherwise, put it in the current directory

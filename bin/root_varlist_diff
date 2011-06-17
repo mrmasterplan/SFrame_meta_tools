@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import sys, os, argparse
+
+def isROOTfile(name):
+    return open(name).read(4)=='root'
+
+
+def main():
+    parser = argparse.ArgumentParser(description="""Get the difference between the variable definitions in two files.
+    The files can be either text-file with c++ like definitons or rootfiles.""")
+    parser.add_argument( "-t", "--treename", dest="treename", action="store",
+                         default="",
+                        help="Name of the TTree in the input root-file" )
+    parser.add_argument( "file1", action="store")
+    parser.add_argument( "file2", action="store")
+    
+    args=parser.parse_args(sys.argv[1:])
+    
+    treename=args.treename
+    if treename and not isROOTfile(args.file1) and not isROOTfile(args.file2):
+        print >>sys.stderr, "Tree name given but neither file is a rootfile."
+    
+    files=[args.file1,args.file2]
+    vars=[]
+    # Assemble the list of variables either from a text-file or from a root-file
+    for name in files:
+        if isROOTfile(name):
+            import TTreeReader
+            if not treename:
+                treename=TTreeReader.GetTreeName(name)
+            varlist=TTreeReader.ReadVars(name,treaename)
+        else:
+            import BranchObject
+            varlist=BranchObject.ReadVariableSelection(name)
+        for i,var in enumerate(varlist):
+            if var.commented:
+                del varlist[i]
+            # print var
+        vars.append(set(varlist))
+    
+    file1only=vars[0]-vars[1]
+    if file1only:
+        print "Only in file %s:"%args.file1
+        for var in file1only:
+            print var.Declaration()
+    
+    file2only=vars[1]-vars[0]
+    if file2only:
+        print "Only in file %s:"%args.file2
+        for var in file2only:
+            print var.Declaration()
+    
+
+if __name__ == "__main__":
+    sys.exit(main())
+
