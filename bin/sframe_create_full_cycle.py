@@ -43,35 +43,40 @@ def main():
     # Parse the command line parameters:
     parser = optparse.OptionParser( usage="%prog [options]" )
     parser.add_option( "-n", "--name", dest="cycleName", action="store",
-                        type="string", default="AnalysisCycle",
+                        type="str", default="AnalysisCycle",
                         help="Name of the analysis cycle to create" )
     parser.add_option( "-l", "--linkdef", dest="linkdef", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name of the LinkDef.h file in the package" )
     parser.add_option( "-r", "--rootfile", dest="rootfile", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name a rootfile to use as the input. The tree name and the variable list can be read from here." )
     parser.add_option( "-t", "--treename", dest="treename", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name of the tree in the input file" )
     parser.add_option( "-v", "--varlist", dest="varlist", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name a file containing a list of variable declarations to be used in the cycle. Can contain comments." )
     parser.add_option( "-a", "--analysis", dest="analysis", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name of the analysis package. Defaults to the name of the pwd." )
     parser.add_option( "-o", "--outtree", dest="outtree", action="store",
-                        type="string", default="",
+                        type="str", default="",
                         help="Name of the output tree, if it should be written." )
+    parser.add_option( "-m", "--mc-tags", dest="mctags", action="store",
+                        type="str", default="mc_,mcevt,truth",
+                        help="Comma separated tags that identify MC variables. Default: mc_,mcevt,truth" )
+    parser.add_option( "-f", "--more-functions", dest="functions", action="store_const",
+                        const=True, default=False,
+                        help="Put stuff into separate functions where possible." )
     
     ( options, args ) = parser.parse_args()
     
     # This is where the main function are:
-    from FullCycleCreators import FullCycleCreator
+    import FullCycleCreators
     
     # Execute the cycle creation:
-    cc = FullCycleCreator()
-    cc.CreateCycle( **options.__dict__)
+    return FullCycleCreators.CreateCycle( **options.__dict__)
 
 
 # Call the main function:

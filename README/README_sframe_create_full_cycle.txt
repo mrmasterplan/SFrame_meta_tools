@@ -1,8 +1,5 @@
 A python script to create a full usable SFrame cycle.
 
-FullCycleCreators.py should be linked or copied to $SFRAME_DIR/python/.
-sframe_create_full_cycle.py should be linked or copied to $SFRAME_DIR/bin/.
-
 sframe_create_full_cycle.py:
     This script is able to create a full sframe analysis cycle that can be compiled
     and run right away.  If only the CYCLENAME is given, the produced code is
@@ -85,3 +82,7 @@ Options:
                         the pwd.
   -o OUTTREE, --outtree=OUTTREE
                         Name of the output tree, if it should be written.
+  -m MCTAGS, --mc-tags=MCTAGS
+                        Comma separated tags that identify MC variables.
+                        Default: mc_,mcevt,truth
+  -f, --more-functions  Put stuff into separate functions where possible.

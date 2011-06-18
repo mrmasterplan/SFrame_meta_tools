@@ -66,12 +66,13 @@ class Variable( object ):
     def __init__( self, name, typename="", pointer="", commented="", title="" ):
         super( Variable, self ).__init__()
         self.SetName(name)
-        self._typename = typename
+        self.SetTypeName(typename)
         self.SetPointer(pointer)
         self.SetCommented(commented)
         self.SetTitle(title)
         self._typelength=0
         self._namelength=0
+        self.mc=0
     
     def SetName(self,name):
         self._name = name
@@ -169,11 +170,14 @@ class Variable( object ):
     def StdPointName(self):
         return ("%-"+str(self.namelength)+"s")%("%s%s; " % (self.pointer, self.cname))
     
+    def StdTypeName(self):
+        return ("%-"+str(self.typelength)+"s") % (self.commented+ self._typename)
+    
     def StdCName(self):
         return ("%-"+str(self.namelength)+"s")%(self.cname)
     
     def Declaration(self):
-        return ("%-"+str(self.typelength)+"s%s%s") % ("%s%s "% (self.commented, self._typename), self.StdPointName(), self.title )
+        return self.StdTypeName()+self.StdPointName()+self.title
     
     def __repr__(self):
         return "Variable(%s, %s, %s, %s, %s )"%(repr(self.name),repr(self.typename),repr(self.pointer),repr(self.commented),repr(self.title))

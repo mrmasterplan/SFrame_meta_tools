@@ -132,3 +132,16 @@ def ReadVars(rootfile, treename ):
     f.Close()
     return varlist
 
+def GetNEvents(rootfile,treename):
+    if not ROOT:
+        return 0
+    f = ROOT.TFile.Open( rootfile )
+    if not f:
+        print >>sys.stderr, "Could not open root file \"%s\"" % rootfile
+        return 0
+    tree = f.Get( treename )
+    if not tree:
+        print >>sys.stderr, "Could not get tree \"%s\"" % treename
+        f.Close()
+        return 0
+    return tree.GetEntries()
