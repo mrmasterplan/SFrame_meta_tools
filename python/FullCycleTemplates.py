@@ -79,7 +79,7 @@ ConnectInputVariables_declaration="""
 ConnectInputVariables_body="""
 void %(class)-s::ConnectInputVariables( const SInputData& id ) throw( SError ){
 
-    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);;
+    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);
 
 %(inputVariableConnections)s
 }
@@ -93,7 +93,7 @@ DeclareOutputVariables_declaration="""
 DeclareOutputVariables_body="""
 void %(class)-s::DeclareOutputVariables( const SInputData& id ) throw( SError ){
 
-    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);;
+    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);
 
 %(outputVariableConnections)s
 }
@@ -174,7 +174,7 @@ void %(class)-s::EndMasterInputData( const SInputData& ) throw( SError ) {
 
 void %(class)-s::BeginInputData( const SInputData& id ) throw( SError ) {
 
-    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);;
+    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);
 
 %(outputVariableConnections)s
     return;
@@ -189,7 +189,7 @@ void %(class)-s::EndInputData( const SInputData& ) throw( SError ) {
 
 void %(class)-s::BeginInputFile( const SInputData& id ) throw( SError ) {
 
-    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);;
+    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);
 
 %(inputVariableConnections)s
     return;
@@ -198,7 +198,7 @@ void %(class)-s::BeginInputFile( const SInputData& id ) throw( SError ) {
 
 void %(class)-s::ExecuteEvent( const SInputData& id, Double_t /*weight*/ ) throw( SError ) {
 
-    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);;
+    bool isdata = id.GetType().Contains("data",TString::kIgnoreCase);
 
 %(outputVariableClearing)s
 
