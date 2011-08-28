@@ -126,7 +126,7 @@ def CreateHeader( className, headerName = "" , namespace = "", varlist = [], cre
     fullClassName = className
     if namespace:
         fullClassName = namespace + "::" + className
-    formdict = { "tab":templates.tab, "class":className, "namespace":namespace, "fullClassName":fullClassName }
+    formdict = { "class":className, "namespace":namespace, "fullClassName":fullClassName }
     
     # Now create all the lines to declare the input and output variables
     inputVariableDeclarations = ""
@@ -140,10 +140,10 @@ def CreateHeader( className, headerName = "" , namespace = "", varlist = [], cre
         subs_dict["cname"]=var.cname
         anystl = anystl or Is_stl_like( var.typename )
         
-        inputVariableDeclarations += "%(tab)s%(declare)s\n" % subs_dict
+        inputVariableDeclarations += "%(declare)s\n" % subs_dict
         
         if create_output:
-            outputVariableDeclarations += ("%(tab)s%(type)s\tout_%(cname)s;\n") % {"tab":templates.tab,"type":var.StdTypeName(),"cname":var.cname}
+            outputVariableDeclarations += ("%(type)s\tout_%(cname)s;\n") % {"type":var.StdTypeName(),"cname":var.cname}
     
     if functions:
         formdict[ "functionDeclarations" ] = templates.ConnectInputVariables_declaration
@@ -203,7 +203,7 @@ def CreateSource( className, sourceName = "", namespace = "", varlist = [], crea
     fullClassName = className
     if namespace:
         fullClassName = namespace + "::" + className
-    formdict = { "tab":templates.tab, "class":className, "namespace":namespace, "fullClassName":fullClassName }
+    formdict = { "class":className, "namespace":namespace, "fullClassName":fullClassName }
     
     # Determine the relative path of the header using os.path.relpath
     import os
@@ -233,16 +233,14 @@ def CreateSource( className, sourceName = "", namespace = "", varlist = [], crea
             mcBlockOpen=False
         else:
             blockCTRL=""
-        if var.mc:
-            blockCTRL+=templates.tab
-        inputVariableConnections += blockCTRL+"%(tab)s%(commented)sConnectVariable( InTreeName.c_str(), \"%(name)s\", %(cname)s );\n" % subs_dict
+        inputVariableConnections += blockCTRL+"%(commented)sConnectVariable( InTreeName.c_str(), \"%(name)s\", %(cname)s );\n" % subs_dict
         
         if create_output:
-            outputVariableConnections += blockCTRL+"%(tab)s%(commented)sDeclareVariable( out_%(cname)s, \"%(name)s\" );\n" % subs_dict
-            outputVariableFilling += blockCTRL+"%(tab)s%(commented)sout_%(cname)s = %(pointer)s%(cname)s;\n" % subs_dict
+            outputVariableConnections += blockCTRL+"%(commented)sDeclareVariable( out_%(cname)s, \"%(name)s\" );\n" % subs_dict
+            outputVariableFilling += blockCTRL+"%(commented)sout_%(cname)s = %(pointer)s%(cname)s;\n" % subs_dict
             if var.pointer and Is_stl_like( var.typename ):
                 # Not all pointer-accessed types can do this, only stl-vectors                
-                outputVariableClearing += "%(tab)s%(commented)sout_%(cname)s.clear();\n" % subs_dict
+                outputVariableClearing += "%(commented)sout_%(cname)s.clear();\n" % subs_dict
     
     formdict[ "inputVariableConnections" ] = inputVariableConnections
     formdict[ "outputVariableConnections" ] = outputVariableConnections
