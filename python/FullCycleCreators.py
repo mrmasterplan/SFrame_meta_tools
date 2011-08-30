@@ -206,8 +206,8 @@ def CreateSource( className, sourceName = "", namespace = "", varlist = [], crea
     formdict = { "class":className, "namespace":namespace, "fullClassName":fullClassName }
     
     # Determine the relative path of the header using os.path.relpath
-    import os
-    include = os.path.relpath( header, os.path.dirname( sourceName ) )
+    import filesystem
+    include = filesystem.relpath( header, os.path.dirname( sourceName ) )
     
     # Now create all the lines to handle the variables
     inputVariableConnections = ""
@@ -664,4 +664,5 @@ def CreateCycle( cycleName, linkdef = "", rootfile = "", treename = "", varlist 
     CreateSource( **options )
     CreateConfig( **options )
     AddJobConfig( **options )
+	print "Please indent the code using your favourite formatter."
     return
