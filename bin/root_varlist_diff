@@ -30,7 +30,7 @@ def main():
             import TTreeReader
             if not treename:
                 treename=TTreeReader.GetTreeName(name)
-            varlist=TTreeReader.ReadVars(name,treaename)
+            varlist=TTreeReader.ReadVars(name,treename)
         else:
             import BranchObject
             varlist=BranchObject.ReadVariableSelection(name)
