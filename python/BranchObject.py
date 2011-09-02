@@ -78,13 +78,13 @@ class Variable( object ):
         self._name = name
         # Sanitize the name. Root names can be anything.
         # We must be careful to have a valid C++ variable name in front of us
-        import re
+        import re, sys
         cname = re.sub( """[^_0-9a-zA-Z]""", "_", name )  # These are the only valid characters in C++ variable names
         if not re.match( "[a-zA-Z_]", cname ):  # furthermore, the name must start with a letter, not a number
             cname = "_" + cname
         
         if cname != name:
-            print >>sys.stderr, "WARNING: Illegal characters in variable name \"%s\", using \"%s\" instead. " % (self.name, self.cname)
+            print >>sys.stderr, "WARNING: Illegal characters in variable name \"%s\", using \"%s\" instead. " % (name, cname)
         self._cname = cname
     
     def GetName(self):
