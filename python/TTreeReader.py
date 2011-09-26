@@ -64,7 +64,7 @@ def GetTreeName( rootfile, default="TreeName"):
         print >>sys.stderr, rootfile, "could not be opened. Using default tree name:", treename
         return treename
     # Get a list of all TKeys to TTrees
-    trees = [ key for key in TCollIter( f.GetListOfKeys() ) if key.GetClassName() == "TTree" ]
+    trees = [ key for key in TCollIter( f.GetListOfKeys() ) if key.ReadObj().IsA().InheritsFrom("TTree") ]
     if len( trees ) == 1:
         # Just 1? Use it
         treename = trees[ 0 ].GetName()
