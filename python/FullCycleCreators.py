@@ -242,6 +242,13 @@ def CreateSource( className, sourceName = "", namespace = "", varlist = [], crea
                 # Not all pointer-accessed types can do this, only stl-vectors                
                 outputVariableClearing += "%(commented)sout_%(cname)s.clear();\n" % subs_dict
     
+    if mcBlockOpen:
+        inputVariableConnections +=templates.CloseMCBlock
+        if create_output:
+            outputVariableConnections +=templates.CloseMCBlock
+            outputVariableFilling +=templates.CloseMCBlock
+    
+    
     formdict[ "inputVariableConnections" ] = inputVariableConnections
     formdict[ "outputVariableConnections" ] = outputVariableConnections
     formdict[ "outputVariableClearing" ] = outputVariableClearing
@@ -658,11 +665,11 @@ def CreateCycle( cycleName, linkdef = "", rootfile = "", treename = "", varlist 
     options[ "treename" ] = treename
     options[ "outtree" ] = outtree
     options[ "config_directory" ] = config_dir
-    options[ "functions" ] = functions
+    options[ "functions" ] = True #functions
     options[ "header" ] = CreateHeader( **options )
     AddLinkDef( **options )
     CreateSource( **options )
     CreateConfig( **options )
     AddJobConfig( **options )
-    print "Please indent the code using your favourite formatter."
+    print "Please indent the code using your favourite formatter like 'Artistic Style' (astyle)."
     return

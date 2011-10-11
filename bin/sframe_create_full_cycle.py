@@ -66,9 +66,9 @@ def main():
     parser.add_option( "-m", "--mc-tags", dest="mctags", action="store",
                         type="str", default="mc_,mcevt,truth",
                         help="Comma separated tags that identify MC variables. Default: mc_,mcevt,truth" )
-    parser.add_option( "-f", "--more-functions", dest="functions", action="store_const",
-                        const=True, default=False,
-                        help="Put stuff into separate functions where possible." )
+    # parser.add_option( "-f", "--more-functions", dest="functions", action="store_const",
+    #                     const=True, default=False,
+    #                     help="Put stuff into separate functions where possible." )
     
     ( options, args ) = parser.parse_args()
     

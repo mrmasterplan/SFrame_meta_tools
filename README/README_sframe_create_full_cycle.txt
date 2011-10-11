@@ -32,14 +32,17 @@ The following describes some typical usecases:
     
     Where selection.C might contain variable declarations like this:
     """"
+    // This is a comment
+    // comments are excluded as long as they don't look like declarations.
     //UInt_t RunNumber;
     int i;
-    //float f;
+    float f;
     vector<float> *v;/*
     vector<float> *el_eta;
     vector<float> *el_phi;*/
+    // vector<float> *mc_pdgID;
     """"
-    As can be seen, c-style comments can be used. Commented out variable
+    As can be seen, c++-style comments can be used. Commented out variable
     declarations will be used in commented form. The tree-name and the root-file
     name will be set to default values in the the config.xml file. These need to
     be adjusted for running.
@@ -47,7 +50,7 @@ The following describes some typical usecases:
 Test Suite
 ==========
     If you would like to see a full test of sframe_create_full_cycle.py, have a
-    look at the test suite located in the folder "test/".
+    look at the test suite located in the folder "Full_Cycle_Test/".
     Inspect the script run_test.sh. It contains examples for how to use the most
     important options that are available in sframe_create_full_cycle.py.
     Run or source the script run_test.sh and inspect the generated code. The 
@@ -85,4 +88,3 @@ Options:
   -m MCTAGS, --mc-tags=MCTAGS
                         Comma separated tags that identify MC variables.
                         Default: mc_,mcevt,truth
-  -f, --more-functions  Put stuff into separate functions where possible.

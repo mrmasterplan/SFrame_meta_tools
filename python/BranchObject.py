@@ -224,10 +224,11 @@ def ReadVariableSelection( filename ):
         return varlist
     
     import re
+    text+="\n"
     # Use some regexp magic to change all /*...*/ style comments to // style comments
     text = re.sub( """\*/(?!\n)""", "*/\n", text ) # append newline to every */ that isn't already followed by one
     text = re.sub( """(?<!\n)/\*""", "\n/*", text ) # prepend newline to every /* that isn't already preceded by one
-    while re.search( """/\*""", text ):  # While ther still are /* comments
+    while re.search( """/\*""", text ):  # While there still are /* comments
         text = re.sub( """/\*(?P<line>.*?)(?=\n|\*/)""", """// \g<line>/*""", text ) # move the /* to the next newline or */
         text = re.sub( """/\*\*/""", "", text )  # remove zero content comments
         text = re.sub( """/\*\n""", "\n/*", text ) # move the /* past the newline
