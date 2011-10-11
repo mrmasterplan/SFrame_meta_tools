@@ -1,7 +1,7 @@
 #!/bin/bash
 # run_test.sh
 
-if command -v sframe_main &>/dev/null;
+if command -v sframe_main &>/dev/null; #Check that SFrame is set up
     then
 
     # Create a new package with two analysis cycles.
