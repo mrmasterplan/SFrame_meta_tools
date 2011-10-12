@@ -34,7 +34,7 @@ def main():
         else:
             import BranchObject
             varlist=BranchObject.ReadVariableSelection(name)
-        for i,var in enumerate(varlist):
+        for i,var in enumerate(varlist[:]):
             if var.commented:
                 del varlist[i]
             # print var
