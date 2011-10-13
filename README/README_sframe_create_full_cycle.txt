@@ -46,6 +46,10 @@ The following describes some typical usecases:
     declarations will be used in commented form. The tree-name and the root-file
     name will be set to default values in the the config.xml file. These need to
     be adjusted for running.
+    
+    In practice, a variable-list like this can be produced from a root-file by the
+    tool root_varlist which is part of this package. The resulting list can be 
+    edited and used as an input to the full_cycle_creator.
 
 Test Suite
 ==========
