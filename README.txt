@@ -6,8 +6,14 @@ root. May they be helpful to you.
 
 SETUP
 =====
-To set this up, please just source the setup.sh:
-source SFrame_meta_tools/setup.sh
+To set up the tools in bash, please just source the setup.sh:
+
+    $ source SFrame_meta_tools/setup.sh
+
+Please note: The above setup script has been written for the bash shell.
+The setup is quite simple and can easily be reproduced for other shells.
+If you make you own setup scrip for another shell, please send it to me 
+so that I can include it in the release. Email: simonhe <AT> nbi.dk
 
 Short Decription
 ================
