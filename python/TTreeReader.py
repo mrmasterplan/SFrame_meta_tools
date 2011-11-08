@@ -16,6 +16,7 @@ import sys
 
 try:
     import ROOT
+    ROOT.gROOT.SetBatch(1)
 except ImportError, e:
     print >>sys.stderr, "ERROR: pyROOT could not be loaded."
     # print "ERROR: You will need to supply the treename and variable list."
