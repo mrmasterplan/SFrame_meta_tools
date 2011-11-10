@@ -16,15 +16,21 @@ def main(argv=sys.argv):
     
     args=parser.parse_args(sys.argv[1:])
     
+    files=[]
     for name in args.file:
         if not isROOTfile(name):
             print >>sys.stderr,"Not a ROOT file:",name
-            sys.exit(127)
+            # sys.exit(127)
+        else:
+            files+=[name]
     
+    if not files:
+        sys.exit(127)
+        
     if not args.treename:
-        args.treename = TTreeReader.GetTreeName(args.file[0])
+        args.treename = TTreeReader.GetTreeName(files[0])
     
-    for name in args.file:
+    for name in files:
         print name+":",TTreeReader.GetNEvents(name,args.treename),"events"	
 	
 if __name__ == '__main__':
