@@ -538,6 +538,55 @@ def AddJobConfig( config_directory, **kwargs):
     print "Using a copy of", oldfile
 
 
+## @short Function to obtain the name of the analysis
+#
+# The name of the analysis can be obtained in one of three ways:
+# by checking the name of the current directory
+# by reading the Makefile
+# by checking the name of a linkDef file.
+# Returns the name of the analysis. Throws an error if inconsistencies arise.
+def GetAnalysisName():
+    import os.path
+    
+    # 1. name of the cwd:
+    name_dir = os.path.basename( os.getcwd() )
+    
+    # 2. name specified in the makefile:
+    import re
+    name_make = ""
+    if os.path.exists("Makefile"):
+        makeconts=open("Makefile").read()
+        match=re.search(r"LIBRARY[ \t]*=[ \t]*(?P<name>[a-zA-Z][a-zA-Z0-9_]*)",makeconts)
+        if match:
+            name_make = match.group("name")
+    if not name_make:
+        print "WARNING: unable to find the analysis name in the Makefile."
+        print """WARNING: ... was looking for a line like "LIBRARY = MyAnalysis" """
+    
+    # 3. name of linkdef
+    import glob
+    name_linkdef=""
+    linkdefs=glob.glob("include/*_LinkDef.h")
+    if len(linkdefs)==1:
+        name_linkdef=linkdefs[0][8:-10]
+    if not name_linkdef:
+        print "WARING: unable to get the name of the analysis from the *_LinkDef.h file"
+        if linkdefs:
+            print "WARING: ... there wasn't a unique one."
+        else:
+            print "WARING: ... there wasn't one."
+    
+    if name_dir==name_make and name_dir==name_linkdef:
+        return name_dir
+    else:
+        print """ERROR: Found conflicting names for this analysis. Please specify the correct name with the -a option. """
+        print """ERROR: ... found "%s", "%s" and "%s". """ %(name_dir,name_make,name_linkdef)
+        import sys
+        sys.exit(-1)
+    # print "dir :",name_dir
+    # print "make:",name_make
+    # print "def :",name_linkdef
+
 ## @short Main analysis cycle creator function
 #
 # The users of this class should normally just use this function
@@ -561,8 +610,7 @@ def CreateCycle( cycleName, linkdef = "", rootfile = "", treename = "", varlist 
         
     # Make sure analysis is set
     if not analysis:
-        import os
-        analysis = os.path.basename( os.getcwd() )
+        analysis = GetAnalysisName()
         print "Using analysis name \"%s\"" % analysis
     
     #First we take care of all the variables that the user may want to have read in.
