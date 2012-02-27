@@ -67,7 +67,7 @@ private:
 %(outputVariableDeclarations)s
 
     // Macro adding the functions for dictionary generation
-    ClassDef( %(fullClassName)s, 0 );
+    ClassDef( %(fullClassName)s, 1 );
 
 }; // class %(class)-s
 """
