@@ -7,19 +7,28 @@ for documentation see library_version_string_facility.py
 import library_version_string_facility, sys, os, glob
 
 def Usage():
-    print >>sys.stderr, "Usage: sframe_read_version library_path"
+    print >>sys.stderr, """Usage: sframe_read_version [ library_paths ]
+    
+    Without arguments, all libraries in $SFRAME_LIB_PATH that have a version string are displayed.
+    """
     sys.exit(-1)
 
 if len(sys.argv)==1:
     if not "SFRAME_LIB_PATH" in os.environ:
         Usage()
-    for path in glob.glob(os.path.expandvars("$SFRAME_LIB_PATH/*.so")):
-        print "Version info for %s:"%path
-        print library_version_string_facility.get_version_info(path)
+    for item in glob.glob(os.path.expandvars("$SFRAME_LIB_PATH/*.so")):
+        info = library_version_string_facility.get_version_info(item)
+        if info:
+            print "Version info for %s:"%item
+            print info
+            print 
 else:
     for item in sys.argv[1:]:
         if not os.path.exists(item):
             Usage()
     for item in sys.argv[1:]:
+        info = library_version_string_facility.get_version_info(item)
         print "Version info for %s:"%item
-        print library_version_string_facility.get_version_info(item)
+        print info
+        print
+        

@@ -97,7 +97,7 @@ def modify_sframe_makefile():
 
 def get_version_info(lib_path):
     # nm_out = command_output("nm %s"%lib_path)
-    # name=re.sub(r".*lib(.*).so.*",r"\g<1>",lib_path)
+    name=re.sub(r".*lib(.*).so.*",r"\g<1>",lib_path)
     # match = re.search(r"([0-9abcdef]+) .*_%(name)s_version_info"%{"name":name},nm_out)
     # # print "matched:",match.group(0)
     # if not match:
@@ -106,7 +106,7 @@ def get_version_info(lib_path):
     # print 'address is',address
     file = open(lib_path,"rb")
     conts = file.read()
-    a1= conts.find("_SMPselection_version_info:")
+    a1= conts.find("_%s_version_info:"%name)
     if a1==-1:
         return ""
     # print "addesse should be",a1
