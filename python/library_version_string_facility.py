@@ -96,20 +96,24 @@ def modify_sframe_makefile():
     file.close()
 
 def get_version_info(lib_path):
-    # nm_out = command_output("nm %s"%lib_path)
     name=re.sub(r".*lib(.*).so.*",r"\g<1>",lib_path)
+    
+    # nm_out = command_output("nm %s"%lib_path)
     # match = re.search(r"([0-9abcdef]+) .*_%(name)s_version_info"%{"name":name},nm_out)
-    # # print "matched:",match.group(0)
+    # print "matched:",match.group(0)
     # if not match:
     #     return ""
     # address = int(match.group(1),16)
+    # assert(hex(address)[2:]==match.group(1).strip('0'))
+    # # assert(hex(address)[2:]==match.group(1).strip('0'))
     # print 'address is',address
+    
     file = open(lib_path,"rb")
     conts = file.read()
     a1= conts.find("_%s_version_info:"%name)
     if a1==-1:
         return ""
-    # print "addesse should be",a1
+    # print "addesse should be",a1,hex(a1)
     address = a1
     file.seek(address,0)
     outstr=""
