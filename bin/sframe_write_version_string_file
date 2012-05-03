@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+"""
+for documentation see library_version_string_facility.py
+"""
+
+import library_version_string_facility,sys
+
+if len(sys.argv)!=3:
+    print "Usage: sframe_write_version_string_file LIBRARY version_info_file_path"
+    sys.exit(-1)
+else:
+    library_version_string_facility.recreate_version_file(sys.argv[1],sys.argv[2])
