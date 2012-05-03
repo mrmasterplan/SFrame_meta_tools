@@ -11,3 +11,4 @@ export SFRAME_META_TOOL_DIR=$(python -c "from os.path import *; print abspath(ex
 export PATH="${SFRAME_META_TOOL_DIR}/bin:${PATH}"
 export PYTHONPATH="${SFRAME_META_TOOL_DIR}/python:${PYTHONPATH}"
 
+python $SFRAME_META_TOOL_DIR/python/library_version_string_facility.py
