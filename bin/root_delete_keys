@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+import sys, os, argparse
+from TTreeReader import TCollIter
+import ROOT
+
+def isROOTfile(name):
+    try:
+        with open(name) as file:
+            return file.read(4)=='root'
+    except:
+        return False
+
+def main():
+    parser = argparse.ArgumentParser(description="""Delete keys from root files. Must pass eiter -e or -d.""")
+    parser.add_argument( "-e", "--except", dest="exceptfile", action="store",
+                         default="",
+                        help="list of exception keys" )
+    parser.add_argument( "-d", "--delete", dest="deletefile", action="store",
+                         default="",
+                        help="list of keys to delete" )
+    parser.add_argument( "file", action="store")
+    
+    args=parser.parse_args(sys.argv[1:])
+    
+    if bool(args.exceptfile) == bool(args.deletefile):
+        print >>sys.stderr,"ERROR: Please path exactly one of -d or -e. Pass -h for help"
+        sys.exit(-1)
+    
+    rootfile = ROOT.TFile.Open(args.file,"update")
+    
+    if not isROOTfile(args.file) or not rootfile:
+        print >>sys.stderr,"ERROR: Argument must be a rootfile"
+        sys.exit(-1)
+    
+    try:
+         keys = [key.GetName() for key in TCollIter(rootfile.GetListOfKeys())]
+    except:
+        print >>sys.stderr,"ERROR: Unknown error"
+        sys.exit(-1)
+        
+    
+    if args.deletefile:
+        try:
+            dellist = [l.strip() for l in open(args.deletefile) if l.strip()[0] != "#" and l]
+            for item in dellist:
+                if item not in keys:
+                    print >>sys.stderr,"WARNING: Key",item,"not found in",args.file
+        except:
+            print >>sys.stderr, "ERROR: cannot read from", args.deletefile
+            sys.exist(-1)
+    else:
+        try:
+            exceptlist = [l.strip() for l in open(args.exceptfile) if l.strip()[0] != "#" and l]
+        except:
+            print >>sys.stderr, "ERROR: cannot read from", args.exceptfile
+            sys.exist(-1)
+            
+        dellist = [ key for key in keys if key not in exceptlist]
+    
+    # print dellist
+    for item in dellist:
+        rootfile.Delete(item+";*")
+    rootfile.Write()
+    rootfile.Close()
+    
+    # if args.deletefile:
+        
+    # print args
+
+
+if __name__ == '__main__':
+    main()
