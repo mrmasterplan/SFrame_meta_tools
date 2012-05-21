@@ -58,7 +58,8 @@ def recreate_version_file(library,version_file_path):
     name = "_%s_version_info" %library
     file = open(path,"w")
     file.write("\n\n//AUTO-GENERATED VERSION INFO.\n//This will enable sframe_read_version in sframe_meta_tools.\n\n")
-    file.write("\nconst char *%(name)s = %(info)s;\n\n"%dict(name=name,info=version_info(library)))
+    file.write("\nextern const char %(name)s[] = %(info)s;\n\n"%dict(name=name,info=version_info(library)))
+    # file.write("\nconst char *%(name)s = %(info)s;\n\n"%dict(name=name,info=version_info(library)))
     file.close()
 
 
@@ -98,23 +99,13 @@ def modify_sframe_makefile():
 def get_version_info(lib_path):
     name=re.sub(r".*lib(.*).so.*",r"\g<1>",lib_path)
     
-    # nm_out = command_output("nm %s"%lib_path)
-    # match = re.search(r"([0-9abcdef]+) .*_%(name)s_version_info"%{"name":name},nm_out)
-    # print "matched:",match.group(0)
-    # if not match:
-    #     return ""
-    # address = int(match.group(1),16)
-    # assert(hex(address)[2:]==match.group(1).strip('0'))
-    # # assert(hex(address)[2:]==match.group(1).strip('0'))
-    # print 'address is',address
-    
-    file = open(lib_path,"rb")
-    conts = file.read()
-    a1= conts.find("_%s_version_info:"%name)
-    if a1==-1:
+    nm_out = command_output("nm %s"%lib_path)
+    match = re.search(r"([0-9abcdef]+) .*_%(name)s_version_info"%{"name":name},nm_out)
+    if not match:
         return ""
-    # print "addesse should be",a1,hex(a1)
-    address = a1
+    
+    address = int(match.group(1),16)
+    file = open(lib_path,"rb")
     file.seek(address,0)
     outstr=""
     while not '\0' in outstr:
@@ -129,6 +120,9 @@ def command_output(cmd):
 
 def main():
     """This function is where the modifiactions of the exisitng Makefile will be made."""
+    if not "SFRAME_DIR" in os.environ:
+        print >>sys.stderr, "Please set up SFrame first."
+        sys.exit(-1)
     modify_sframe_makefile()
 
 if __name__ == '__main__':
