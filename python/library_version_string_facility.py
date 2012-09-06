@@ -31,16 +31,37 @@ def version_info(library):
     import datetime
     output+=["Date: "+datetime.datetime.now().ctime().strip()]
     if command_output("which root-config 2>/dev/null"):
-        output+=["ROOT version: "+command_output("root-config --version")]
+        try:
+            output+=["ROOT version: "+command_output("root-config --version")]
+        except:
+            pass
     if "SFRAME_DIR" in os.environ:
-        sframe_svn_info = command_output("cd $SFRAME_DIR; svn info")
-        if sframe_svn_info:
-            output+=["SFrame svn url: "+re.search(r"URL: (.*)",sframe_svn_info).group(1)]
-            output+=["SFrame svn revision: "+re.search(r"Revision: (.*)",sframe_svn_info).group(1)]
-    local_svn_info = command_output("svn info 2>/dev/null")
-    if local_svn_info:
-        output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
-        output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
+        try:
+            sframe_svn_info = command_output("cd $SFRAME_DIR; svn info")
+            if sframe_svn_info:
+                try:
+                    output+=["SFrame svn url: "+re.search(r"URL: (.*)",sframe_svn_info).group(1)]
+                except:
+                    pass
+                try:
+                    output+=["SFrame svn revision: "+re.search(r"Revision: (.*)",sframe_svn_info).group(1)]
+                except:
+                    pass
+        except:
+            pass
+    try:
+        local_svn_info = command_output("svn info 2>/dev/null")
+        if local_svn_info:
+            try:
+                output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
+            except:
+                pass
+            try:
+                output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
+            except:
+                pass
+    except:
+        pass
     output+=["Library path: "+os.getcwd()]
     output+=["Compiled by: "+command_output("whoami")]
     maxlen = max([len(s) for s in output])
