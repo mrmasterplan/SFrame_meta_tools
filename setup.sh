@@ -12,3 +12,6 @@ export PATH="${SFRAME_META_TOOL_DIR}/bin:${PATH}"
 export PYTHONPATH="${SFRAME_META_TOOL_DIR}/python:${PYTHONPATH}"
 
 python $SFRAME_META_TOOL_DIR/python/library_version_string_facility.py
+
+echo "Making sure SFrameMetaTools is compiled"
+( cd $SFRAME_META_TOOL_DIR/SFrameMetaTools; make )

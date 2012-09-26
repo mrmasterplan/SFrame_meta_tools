@@ -426,7 +426,9 @@ def CreateConfig( className, configName = "" , namespace = "", analysis = "MyAna
                 node.setAttribute( "Name", "lib" + analysis )
                 newnode=node.cloneNode(deep=True)
                 newnode.setAttribute( "Name", "libSFrameMetaTools" )
-                JobConfiguration.insertBefore(newnode,node)
+                JobConfiguration.insertBefore(dom.createComment(" Uncomment if you want to use compiled features of SFrameMetaTools: "), node)
+                JobConfiguration.insertBefore(dom.createComment(newnode.toxml()), node)
+                # JobConfiguration.insertBefore(newnode,node)
         
         #Find the SFrameUser package and change it to ours
         for node in dom.getElementsByTagName( "Package" ):
@@ -434,7 +436,9 @@ def CreateConfig( className, configName = "" , namespace = "", analysis = "MyAna
                 node.setAttribute( "Name", analysis + ".par" )
                 newnode=node.cloneNode(deep=True)
                 newnode.setAttribute( "Name", "SFrameMetaTools.par" )
-                JobConfiguration.insertBefore(newnode,node)
+                JobConfiguration.insertBefore(dom.createComment(" Uncomment if you want to use compiled features of SFrameMetaTools: "), node)
+                JobConfiguration.insertBefore(dom.createComment(newnode.toxml()), node)
+                # JobConfiguration.insertBefore(newnode,node)
                 
         
         nodes = dom.getElementsByTagName( "Cycle" )

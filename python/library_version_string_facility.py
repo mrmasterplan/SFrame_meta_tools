@@ -107,6 +107,9 @@ def modify_sframe_makefile():
             newfile+= "SKIPCPPLIST = $(DICTFILE) $(VERSION_FILE)\n"
         elif line.startswith("INCLUDES +="):
             newfile+=line.strip()+" -I$(SFRAME_META_TOOL_DIR)/ \n"
+        elif line.startswith("distclean:"):
+            newfile+=line
+            newfile+="\t@rm -f $(VERSION_FILE)\n"
         else:
             newfile+=line
     print "Writing modified",path
