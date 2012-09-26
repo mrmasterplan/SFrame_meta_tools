@@ -34,34 +34,29 @@ def version_info(library):
         try:
             output+=["ROOT version: "+command_output("root-config --version")]
         except:
-            pass
+            output+=["ROOT version not available"]
+    else:
+        output+=["ROOT version not available"]
+        
     if "SFRAME_DIR" in os.environ:
         try:
             sframe_svn_info = command_output("cd $SFRAME_DIR; svn info")
             if sframe_svn_info:
-                try:
-                    output+=["SFrame svn url: "+re.search(r"URL: (.*)",sframe_svn_info).group(1)]
-                except:
-                    pass
-                try:
-                    output+=["SFrame svn revision: "+re.search(r"Revision: (.*)",sframe_svn_info).group(1)]
-                except:
-                    pass
+                output+=["SFrame svn url: "+re.search(r"URL: (.*)",sframe_svn_info).group(1)]
+                output+=["SFrame svn revision: "+re.search(r"Revision: (.*)",sframe_svn_info).group(1)]
+            else:
+                output+=["SFrame is not using svn"]
         except:
-            pass
+            output+=["SFrame is not using svn"]
     try:
         local_svn_info = command_output("svn info 2>/dev/null")
         if local_svn_info:
-            try:
-                output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
-            except:
-                pass
-            try:
-                output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
-            except:
-                pass
+            output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
+            output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
+        else:
+            output+=["Library is not using svn"]
     except:
-        pass
+        output+=["Library is not using svn"]
     output+=["Library path: "+os.getcwd()]
     output+=["Compiled by: "+command_output("whoami")]
     maxlen = max([len(s) for s in output])
@@ -110,6 +105,8 @@ def modify_sframe_makefile():
             newfile+=line.replace("$(addprefix $(OBJDIR)/,$(OLIST))","$(addprefix $(OBJDIR)/,$(OLIST) $(VERSION_OBJ))")
         elif line == "SKIPCPPLIST = $(DICTFILE)\n":
             newfile+= "SKIPCPPLIST = $(DICTFILE) $(VERSION_FILE)\n"
+        elif line.startswith("INCLUDES +="):
+            newfile+=line.strip()+" -I$(SFRAME_META_TOOL_DIR)/ \n"
         else:
             newfile+=line
     print "Writing modified",path

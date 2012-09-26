@@ -424,11 +424,18 @@ def CreateConfig( className, configName = "" , namespace = "", analysis = "MyAna
         for node in dom.getElementsByTagName( "Library" ):
             if node.getAttribute( "Name" ) == "libSFrameUser":
                 node.setAttribute( "Name", "lib" + analysis )
+                newnode=node.cloneNode(deep=True)
+                newnode.setAttribute( "Name", "libSFrameMetaTools" )
+                JobConfiguration.insertBefore(newnode,node)
         
         #Find the SFrameUser package and change it to ours
         for node in dom.getElementsByTagName( "Package" ):
             if node.getAttribute( "Name" ) == "SFrameUser.par":
                 node.setAttribute( "Name", analysis + ".par" )
+                newnode=node.cloneNode(deep=True)
+                newnode.setAttribute( "Name", "SFrameMetaTools.par" )
+                JobConfiguration.insertBefore(newnode,node)
+                
         
         nodes = dom.getElementsByTagName( "Cycle" )
         #There should be exactly one cycle
