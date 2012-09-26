@@ -28,8 +28,24 @@ import os, re, sys
 
 def version_info(library):
     output=["_%s_version_info:"%library]
-    import datetime
-    output+=["Date: "+datetime.datetime.now().ctime().strip()]
+    output+=["Library name: %s"%library]
+    try:
+        import datetime
+        output+=["Date: "+datetime.datetime.now().ctime().strip()]
+    except:
+        pass
+    
+    try:
+        local_svn_info = command_output("svn info 2>/dev/null")
+        if local_svn_info:
+            output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
+            output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
+        else:
+            output+=["Library is not using svn"]
+    except:
+        output+=["Library is not using svn"]
+    output+=["Library path: "+os.getcwd()]
+    
     if command_output("which root-config 2>/dev/null"):
         try:
             output+=["ROOT version: "+command_output("root-config --version")]
@@ -48,20 +64,10 @@ def version_info(library):
                 output+=["SFrame is not using svn"]
         except:
             output+=["SFrame is not using svn"]
-    try:
-        local_svn_info = command_output("svn info 2>/dev/null")
-        if local_svn_info:
-            output+=["Library svn url: "+re.search(r"URL: (.*)",local_svn_info).group(1)]
-            output+=["Library svn revision: "+re.search(r"Revision: (.*)",local_svn_info).group(1)]
-        else:
-            output+=["Library is not using svn"]
-    except:
-        output+=["Library is not using svn"]
-    output+=["Library path: "+os.getcwd()]
     output+=["Compiled by: "+command_output("whoami")]
     maxlen = max([len(s) for s in output])
     pat = "%%-%ds   \\n\\\n"%maxlen
-    out_str="\"\\\n"
+    out_str="\"\n"
     for s in output:
         out_str+=pat%s
     out_str+="\""
@@ -73,7 +79,7 @@ def recreate_version_file(library,version_file_path):
     path = version_file_path
     name = "_%s_version_info" %library
     file = open(path,"w")
-    file.write("\n\n//AUTO-GENERATED VERSION INFO.\n//This will enable sframe_read_version in sframe_meta_tools.\n\n")
+    file.write("\n\n//AUTO-GENERATED VERSION INFO.\n//This string is accessible from sframe_read_version in SFrame_meta_tools.\n\n")
     file.write("\nextern const char %(name)s[] = %(info)s;\n\n"%dict(name=name,info=version_info(library)))
     # file.write("\nconst char *%(name)s = %(info)s;\n\n"%dict(name=name,info=version_info(library)))
     file.close()
@@ -125,7 +131,8 @@ def get_version_info(lib_path):
     if not match:
         return ""
     
-    address = int(match.group(1),16)
+    # convert the hex address to an integer
+    address = int(match.group(1),16) # use base 16
     file = open(lib_path,"rb")
     file.seek(address,0)
     outstr=""

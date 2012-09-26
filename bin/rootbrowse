@@ -11,13 +11,14 @@ import os, sys
 import time
 
 def main(argv=None):
-    os.close(0)
+    os.close(0) # close stdin down at the os level. otherwise root cannot be run in background.
     import ROOT
     
     infiles=[ROOT.TFile.Open(name) for name in sys.argv[1:]]
     tbrowse=ROOT.TBrowser()
     
     try:
+        # Stay alive while the browser window is open
         while tbrowse:
             time.sleep(0.5)
     except KeyboardInterrupt,e:
