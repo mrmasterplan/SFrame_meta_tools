@@ -66,11 +66,11 @@ def version_info(library):
             output+=["SFrame is not using svn"]
     output+=["Compiled by: "+command_output("whoami")]
     maxlen = max([len(s) for s in output])
-    pat = "%%-%ds   \\n\\\n"%maxlen
-    out_str="\""
+    pat = "    \"%%-%ds   \\n\"\n"%maxlen
+    out_str="\n"
     for s in output:
         out_str+=pat%s
-    out_str+="\""
+    # out_str+="\""
     return out_str
     # return "\"%s\""%output.replace(r"\\",r"\\\\").replace("\n","    \\n\\\n").replace("\"","\\\"")
     
