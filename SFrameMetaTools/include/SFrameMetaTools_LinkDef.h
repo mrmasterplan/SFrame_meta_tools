@@ -12,5 +12,9 @@
 // want to generate a dictionary, here. The usual format is:
 //
 // #pragma link C++ class MySuperClass+;
+#pragma link C++ class ScaleObj+;
+#pragma link C++ class LinScale+;
+#pragma link C++ class LogScale+;
+#pragma link C++ class CountScale+;
 
 #endif // __CINT__
