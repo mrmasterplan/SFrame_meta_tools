@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 function sframe_svn_setignore {
     local LIBRARY="$(grep LIBRARY Makefile | sed 's/LIBRARY *=* *//g')"
@@ -15,7 +15,7 @@ function sframe_svn_setignore {
     echo "   src/${LIBRARY}_Dict.h"
     echo "   src/${LIBRARY}_Dict.cxx"
     echo "   src/_${LIBRARY}_version_info.cxx"
-    echo "If you have trouble checking in please run \'svn up\' first."
+    echo "If you have trouble checking in please run 'svn up' first."
 }
 
 sframe_svn_setignore
