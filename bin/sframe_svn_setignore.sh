@@ -16,6 +16,7 @@ function sframe_svn_setignore {
     echo "   src/${LIBRARY}_Dict.cxx"
     echo "   src/_${LIBRARY}_version_info.cxx"
     echo "If you have trouble checking in please run 'svn up' first."
+    echo "You can edit the ignores by calling 'svn propedit svn:ignore .' in any directory." 
 }
 
 sframe_svn_setignore
